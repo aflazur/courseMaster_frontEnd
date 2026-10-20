@@ -21,54 +21,61 @@ export default function CoursesSection() {
     const [category, setCategory] = useState("");
     const [tags, setTags] = useState("");
 
-    const fetchCourses = async () => {
-        try {
-            setLoading(true);
-            setError(null);
-
-            const params = {
-                page,
-                limit,
-                search: search || undefined,
-                sort: sort || undefined,
-                category: category || undefined,
-                tags: tags || undefined,
-            };
-
-            const res = await getCourses(params);
-            setCourses(res.data.courses || []);
-            setTotalPages(res.data.totalPages || 1);
-        } catch (err) {
-            setError("Failed to load courses");
-        } finally {
-            setLoading(false);
-        }
-    };
+    // the search term that is actually applied (updated on submit)
+    const [appliedSearch, setAppliedSearch] = useState("");
 
     useEffect(() => {
+        let cancelled = false;
+
+        const fetchCourses = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+
+                const res = await getCourses({
+                    page,
+                    limit,
+                    search: appliedSearch || undefined,
+                    sort: sort || undefined,
+                    category: category || undefined,
+                    tags: tags || undefined,
+                });
+                if (cancelled) return;
+                setCourses(res.data.courses || []);
+                setTotalPages(res.data.totalPages || 1);
+            } catch {
+                if (!cancelled) setError("Failed to load courses");
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
+        };
+
         fetchCourses();
-        // eslint-disable-next-line
-    }, [page, sort, category, tags]);
+        return () => {
+            cancelled = true;
+        };
+    }, [page, limit, appliedSearch, sort, category, tags]);
+
+    // changing a filter always goes back to the first page
+    const withReset = (setter) => (value) => {
+        setter(value);
+        setPage(1);
+    };
 
     const onSearchSubmit = (e) => {
         e.preventDefault();
+        setAppliedSearch(search.trim());
         setPage(1);
-        fetchCourses();
     };
-
-    // reset page when filters change
-    useEffect(() => {
-        setPage(1);
-    }, [sort, category, tags]);
 
     return (
         <div className="space-y-6">
 
             <CoursesFilters
                 search={search} setSearch={setSearch}
-                sort={sort} setSort={setSort}
-                category={category} setCategory={setCategory}
-                tags={tags} setTags={setTags}
+                sort={sort} setSort={withReset(setSort)}
+                category={category} setCategory={withReset(setCategory)}
+                tags={tags} setTags={withReset(setTags)}
                 onSearchSubmit={onSearchSubmit}
             />
 
