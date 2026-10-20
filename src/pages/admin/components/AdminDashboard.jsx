@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, Navigate } from "react-router-dom";
 import { getMe } from "../../../services/auth.api";
 import AdminRoute from "../../../routes/AdminRoute";
 import AdminSidebar from "./AdminSidebar";
@@ -11,6 +11,7 @@ import AdminSidebar from "./AdminSidebar";
 
 export default function AdminDashboard() {
     const [me, setMe] = useState(null);
+    const [failed, setFailed] = useState(false);
 
     useEffect(() => {
         const loadMe = async () => {
@@ -19,10 +20,13 @@ export default function AdminDashboard() {
                 setMe(res.data);
             } catch (err) {
                 console.error("Failed to load user:", err);
+                setFailed(true);
             }
         };
         loadMe();
     }, []);
+
+    if (failed) return <Navigate to="/login" replace />;
 
     return (
         <AdminRoute me={me}>

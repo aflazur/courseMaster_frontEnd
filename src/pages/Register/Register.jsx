@@ -16,13 +16,22 @@ export default function Register() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
+            if (form.name.trim().length < 2) {
+                setError("Name must be at least 2 characters");
+                return;
+            }
+            if (form.password.length < 6) {
+                setError("Password must be at least 6 characters");
+                return;
+            }
+
             setLoading(true);
             setError(null);
 
             // Only send adminKey if it's provided
             const payload = {
-                name: form.name,
-                email: form.email,
+                name: form.name.trim(),
+                email: form.email.trim(),
                 password: form.password,
             };
             if (form.adminKey.trim()) {
@@ -93,8 +102,9 @@ export default function Register() {
                                 type="password"
                                 value={form.password}
                                 onChange={handleChange}
-                                placeholder="Create a password"
+                                placeholder="Create a password (min 6 characters)"
                                 className="input input-bordered w-full focus:input-primary"
+                                minLength={6}
                                 required
                             />
                         </div>
