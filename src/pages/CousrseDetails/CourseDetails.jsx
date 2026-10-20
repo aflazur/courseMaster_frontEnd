@@ -5,7 +5,7 @@ import {
     fetchCourseById,
     clearCurrentCourse,
 } from "../../store/slices/coursesSlice";
-import { enrollCourseAsync, clearSuccess } from "../../store/slices/enrollmentSlice";
+import { enrollCourseAsync, fetchMyEnrollments, clearSuccess, clearError } from "../../store/slices/enrollmentSlice";
 import { getMeAsync } from "../../store/slices/authSlice";
 
 export default function CourseDetails() {
@@ -22,6 +22,14 @@ export default function CourseDetails() {
         dispatch(fetchCourseById(id));
         return () => dispatch(clearCurrentCourse());
     }, [id, dispatch]);
+
+    // Load the student's enrollments so "already enrolled" is detected on this page
+    useEffect(() => {
+        if (token) {
+            dispatch(fetchMyEnrollments());
+        }
+        return () => dispatch(clearError());
+    }, [token, dispatch]);
 
     // Load user if token exists but user is not loaded
     useEffect(() => {
@@ -53,9 +61,7 @@ export default function CourseDetails() {
 
         if (cannotEnroll) return;
 
-        // Note: Since batches don't have _id in the model, we pass null
-        // The backend can be updated later to handle batch references properly
-        dispatch(enrollCourseAsync({ courseId: id, batchId: selectedBatchId !== null ? selectedBatchId.toString() : null }));
+        dispatch(enrollCourseAsync({ courseId: id, batchId: selectedBatchId }));
     };
 
     useEffect(() => {
@@ -113,7 +119,7 @@ export default function CourseDetails() {
                             WebkitBackgroundClip: 'text',
                             WebkitTextFillColor: 'transparent',
                             backgroundClip: 'text'
-                        }}>৳ {course.price * 100}</p>
+                        }}>৳ {Number(course.price).toLocaleString()}</p>
 
                         <div>
                             {isAdmin ? (
@@ -133,25 +139,28 @@ export default function CourseDetails() {
                                 <div className="alert alert-success">
                                     <span>{success}</span>
                                 </div>
-                            ) : enrollError ? (
-                                <div className="alert alert-error">
-                                    <span>{enrollError}</span>
-                                </div>
                             ) : alreadyEnrolled ? (
                                 <button onClick={() => navigate('/student')} className="btn btn-outline gap-2">
                                     Go to Dashboard
                                 </button>
                             ) : (
-                                <button onClick={handleEnroll} disabled={enrolling} className="btn btn-primary gap-2">
-                                    {enrolling ? (
-                                        <>
-                                            <span className="loading loading-spinner"></span>
-                                            Enrolling...
-                                        </>
-                                    ) : (
-                                        "Enroll Now"
+                                <div className="space-y-2">
+                                    {enrollError && (
+                                        <div className="alert alert-error">
+                                            <span>{enrollError}</span>
+                                        </div>
                                     )}
-                                </button>
+                                    <button onClick={handleEnroll} disabled={enrolling} className="btn btn-primary gap-2">
+                                        {enrolling ? (
+                                            <>
+                                                <span className="loading loading-spinner"></span>
+                                                Enrolling...
+                                            </>
+                                        ) : (
+                                            "Enroll Now"
+                                        )}
+                                    </button>
+                                </div>
                             )}
                         </div>
                     </div>
@@ -256,13 +265,13 @@ export default function CourseDetails() {
                         <h2 className="page-heading-h2 mb-4">Available Batches</h2>
                         <div className="space-y-2">
                             {course.batches.map((batch, idx) => {
-                                // Use index as batch identifier since batches don't have _id
-                                const batchIndex = idx;
-                                const isSelected = selectedBatchId === batchIndex;
+                                // Mongoose gives every batch sub-document an _id
+                                const batchKey = batch._id;
+                                const isSelected = selectedBatchId === batchKey;
                                 return (
                                     <div
                                         key={idx}
-                                        onClick={() => setSelectedBatchId(isSelected ? null : batchIndex)}
+                                        onClick={() => setSelectedBatchId(isSelected ? null : batchKey)}
                                         className={`flex justify-between items-center p-3 rounded cursor-pointer transition ${isSelected
                                             ? "bg-primary text-primary-content border-2 border-primary"
                                             : "bg-base-200 hover:bg-base-300 border-2 border-transparent"
@@ -272,7 +281,7 @@ export default function CourseDetails() {
                                             <input
                                                 type="radio"
                                                 checked={isSelected}
-                                                onChange={() => setSelectedBatchId(isSelected ? null : batchIndex)}
+                                                onChange={() => setSelectedBatchId(isSelected ? null : batchKey)}
                                                 className="radio radio-sm"
                                                 onClick={(e) => e.stopPropagation()}
                                             />
@@ -285,7 +294,7 @@ export default function CourseDetails() {
                                 );
                             })}
                         </div>
-                        {selectedBatchId && (
+                        {selectedBatchId !== null && (
                             <div className="mt-3 text-sm text-primary">
                                 ✓ Batch selected for enrollment
                             </div>
