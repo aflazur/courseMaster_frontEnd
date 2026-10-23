@@ -59,7 +59,7 @@ export default function AdminOverview() {
             value: enrollments.length,
             colorClass: "bg-gradient-to-br from-primary to-primary/80 text-primary-content",
             icon: <Users className="w-8 h-8" />,
-            trend: "+12%",
+            trend: null,
         },
         {
             title: "Pending Assignments",
@@ -236,14 +236,14 @@ export default function AdminOverview() {
                         <h2 className="page-heading-h2 mb-4">Assignment Status</h2>
                         {assignmentStatusData.some((d) => d.value > 0) ? (
                             <ResponsiveContainer width="100%" height={250}>
-                                <PieChart>
+                                <PieChart margin={{ top: 10, right: 60, bottom: 10, left: 60 }}>
                                     <Pie
                                         data={assignmentStatusData}
                                         cx="50%"
                                         cy="50%"
                                         labelLine={false}
                                         label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                                        outerRadius={80}
+                                        outerRadius={70}
                                         fill="#8884d8"
                                         dataKey="value"
                                     >
