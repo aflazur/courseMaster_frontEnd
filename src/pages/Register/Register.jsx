@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { registerUser } from "../../services/auth.api";
-import { Link, useNavigate } from "react-router-dom";
+import { saveToken } from "../../utils/auth";
+import { Link } from "react-router-dom";
 
 export default function Register() {
-    const navigate = useNavigate();
-
     const [form, setForm] = useState({ name: "", email: "", password: "", adminKey: "" });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -38,9 +37,11 @@ export default function Register() {
                 payload.adminKey = form.adminKey.trim();
             }
 
-            await registerUser(payload);
+            const res = await registerUser(payload);
 
-            navigate("/login");
+            // The API returns a token on register, so sign the user in right away
+            saveToken(res.data.token);
+            window.location.assign(res.data.user?.role === "admin" ? "/admin" : "/student");
         } catch (err) {
             setError(err.response?.data?.message || "Register failed");
         } finally {
